@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sri Mart - Buyer Dashboard</title>
+<script src="/config/api-config.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;background:#f0f2f5}
+.header{background:#4CAF50;color:white;padding:14px 30px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50}
+.header h1{font-size:20px}.header .right{display:flex;align-items:center;gap:8px;font-size:14px;flex-wrap:wrap}
+.header button{padding:7px 12px;border:none;border-radius:5px;cursor:pointer;background:white;color:#4CAF50}
+.search{background:white;padding:12px 30px;display:flex;gap:10px;box-shadow:0 2px 4px rgba(0,0,0,.1);flex-wrap:wrap;align-items:center}
+.search input,.search select{padding:9px;border:1px solid #ddd;border-radius:5px}.search input#q{flex:1;min-width:160px}
+.search button{padding:9px 14px;background:#4CAF50;color:white;border:none;border-radius:5px;cursor:pointer}
+.container{display:flex;gap:20px;padding:20px;max-width:1200px;margin:auto}
+.products{flex:3;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:15px;align-content:start}
+.card{background:white;border-radius:8px;padding:15px;box-shadow:0 2px 6px rgba(0,0,0,.1);position:relative}
+.card h3{margin-bottom:5px;padding-right:24px}.card .price{color:#4CAF50;font-weight:bold;margin:5px 0}
+.card .desc{font-size:12px;color:#666;min-height:30px}
+.card button.buy{width:100%;padding:8px;background:#4CAF50;color:white;border:none;border-radius:5px;cursor:pointer;margin-top:8px}
+.card button.buy:hover{background:#45a049}
+.card button.detail{width:100%;padding:6px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;border-radius:5px;cursor:pointer;margin-top:6px;font-size:12px}
+.wish{position:absolute;top:8px;right:8px;border:none;background:none;font-size:20px;cursor:pointer;color:#ccc}
+.wish.on{color:#e53935}
+.badge{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;font-weight:bold;margin-left:4px;vertical-align:middle}
+.b-low{background:#fff3e0;color:#e65100}.b-out{background:#ffebee;color:#c62828}
+.cart{flex:1;background:white;border-radius:8px;padding:15px;height:fit-content;box-shadow:0 2px 6px rgba(0,0,0,.1);min-width:280px}
+.cart h3{margin-bottom:10px;font-size:15px}
+.cart-item{display:flex;justify-content:space-between;align-items:center;margin:6px 0;font-size:13px;border-bottom:1px solid #eee;padding-bottom:5px}
+.cart-item .qtybtn{border:1px solid #ddd;background:#fafafa;border-radius:4px;width:22px;height:22px;cursor:pointer;font-weight:bold}
+.msg{padding:10px;margin:10px 0;border-radius:5px;display:none}.msg.ok{background:#d4edda;color:#155724}.msg.err{background:#f8d7da;color:#721c24}
+.ordrow{border-bottom:1px solid #eee;padding:7px 0;font-size:12px}
+.ordrow button{margin-top:4px;padding:4px 8px;font-size:11px;border:none;border-radius:4px;cursor:pointer;background:#eceff1;color:#37474f}
+/* modal */
+#modal,#pmodal,#paym{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center}
+#modal .box,#pmodal .box,#paym .box{background:white;border-radius:10px;padding:20px;width:420px;max-width:94vw;max-height:86vh;overflow-y:auto}
+#modal h3,#pmodal h3,#paym h3{margin-bottom:8px}
+#modal input,#pmodal input,#paym input{width:100%;padding:9px;margin:5px 0;border:1px solid #ddd;border-radius:5px}
+#paym .payOpts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0}
+#paym .payOpt{border:1px solid #ddd;border-radius:6px;padding:8px;font-size:13px;cursor:pointer}
+#paym .payOpt label{display:flex;align-items:center;gap:6px;margin:0;cursor:pointer}
+#paym .payOpt input{width:auto;padding:0;margin:0}
+.revline{border-bottom:1px solid #eee;padding:7px 0;font-size:13px}
+.stars{color:#ff9800;letter-spacing:2px;cursor:pointer;font-size:20px}
+.stars small{cursor:default}
+.rowbtns{display:flex;gap:8px;margin-top:10px}
+.rowbtns button{flex:1;padding:9px;border:none;border-radius:5px;cursor:pointer}
+/* chat */
+#chatFab{position:fixed;bottom:20px;right:20px;width:56px;height:56px;border-radius:50%;background:#4CAF50;color:white;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.25);z-index:1000}
+#chatPanel{display:none;position:fixed;bottom:88px;right:20px;width:350px;max-width:calc(100vw - 40px);height:460px;max-height:62vh;background:white;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:1000;flex-direction:column;overflow:hidden}
+#chatHead{background:#4CAF50;color:white;padding:10px 12px;font-weight:bold;display:flex;justify-content:space-between;align-items:center}
+#chatHead .mini{background:rgba(255,255,255,.25);border:none;color:white;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:12px;margin-left:5px}
+#chatMsgs{flex:1;overflow-y:auto;padding:10px;font-size:13px;background:#fafafa}
+#chatChips{padding:6px 10px;display:flex;flex-wrap:wrap;gap:6px;background:white;border-top:1px solid #eee}
+.stamp{font-size:9px;color:#999;margin-top:2px}
+#chatInputRow{display:flex;border-top:1px solid #eee;background:white}
+#chatInputRow input{flex:1;border:none;padding:12px;outline:none;font-size:13px;min-width:0}
+#chatInputRow button{border:none;background:#4CAF50;color:white;padding:0 16px;cursor:pointer;font-size:16px}
+.typing{display:inline-block;padding:8px 12px;background:#eceff1;border-radius:12px;color:#78909c;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.4}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🛒 Sri Mart — Buyer</h1>
+  <div class="right">
+    <span id="userInfo"></span>
+    <button id="wishBtn" onclick="toggleWishFilter()" title="Show wishlist only">♡ Wishlist (<span id="wishCount">0</span>)</button>
+    <button onclick="viewCart()">Cart (<span id="cartCount">0</span>)</button>
+    <button onclick="openProfile()">Profile</button>
+    <button onclick="toggleChat()">💬 Assistant</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+</div>
+<div class="search">
+  <input id="q" placeholder="Search products by name...">
+  <input id="minPrice" placeholder="Min price" type="number" style="width:100px">
+  <input id="maxPrice" placeholder="Max price" type="number" style="width:100px">
+  <select id="sortSel" onchange="applySort()">
+    <option value="">Sort: newest</option>
+    <option value="price_asc">Price ↑</option>
+    <option value="price_desc">Price ↓</option>
+    <option value="name">Name A-Z</option>
+  </select>
+  <button onclick="searchProducts()">Search</button>
+  <button onclick="clearFilters()">All</button>
+</div>
+<div class="container">
+  <div class="products" id="products"></div>
+  <div class="cart">
+    <h3>Your Cart</h3>
+    <div id="cartItems">Loading...</div>
+    <div style="margin-top:10px;font-weight:bold">Total: ₹<span id="cartTotal">0</span></div>
+    <button onclick="checkout()" style="width:100%;margin-top:10px;padding:10px;background:#ff9800;color:white;border:none;border-radius:5px;cursor:pointer">Checkout / Billing</button>
+    <div id="msg" class="msg"></div>
+    <div style="margin-top:10px;font-size:12px;color:#666">Fresh catalogue · Secure checkout · Easy 7-day returns</div>
+    <hr style="margin:12px 0;border:none;border-top:1px solid #eee">
+    <h3>My Orders</h3>
+    <div id="orderList" style="font-size:13px;color:#888">Loading...</div>
+    <button onclick="loadOrders()" style="width:100%;margin-top:8px;padding:8px;background:#2196F3;color:white;border:none;border-radius:5px;cursor:pointer">Refresh Orders</button>
+  </div>
+</div>
+
+<!-- product detail modal -->
+<div id="modal">
+  <div class="box">
+    <h3 id="mdName">Product</h3>
+    <div id="mdDesc" style="font-size:13px;color:#555;margin-bottom:6px"></div>
+    <div class="price" id="mdPrice" style="color:#4CAF50;font-weight:bold;font-size:18px"></div>
+    <div id="mdStock" style="font-size:13px;margin:4px 0 10px"></div>
+    <h3 style="font-size:14px">Reviews</h3>
+    <div id="mdReviews" style="max-height:160px;overflow-y:auto;font-size:13px"></div>
+    <div style="margin-top:10px;border-top:1px solid #eee;padding-top:8px">
+      <div class="stars" id="mdStars" title="Click to rate">☆☆☆☆☆</div>
+      <input id="mdComment" placeholder="Your review (optional)">
+      <div class="rowbtns">
+        <button style="background:#eceff1" onclick="closeModal()">Close</button>
+        <button style="background:#2196F3;color:white" onclick="submitReview()">Post review</button>
+        <button style="background:#4CAF50;color:white" id="mdAddBtn">Add to cart</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- profile modal -->
+<div id="pmodal">
+  <div class="box">
+    <h3>Your profile</h3>
+    <div id="pfInfo" style="font-size:13px;color:#666;margin-bottom:8px"></div>
+    <input id="pfUser" placeholder="Username">
+    <input id="pfEmail" placeholder="Email">
+    <input id="pfPass" placeholder="New password (blank = keep)" type="password">
+    <div class="rowbtns">
+      <button style="background:#eceff1" onclick="document.getElementById('pmodal').style.display='none'">Close</button>
+      <button style="background:#4CAF50;color:white" onclick="saveProfile()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- payment modal (demo) -->
+<div id="paym">
+  <div class="box">
+    <h3>Complete payment</h3>
+    <div id="payInfo" style="font-size:13px;color:#666"></div>
+    <div id="payTotal" style="font-size:22px;font-weight:bold;color:#2e7d32;margin:6px 0"></div>
+    <div style="font-size:12px;color:#666">Payment method</div>
+    <div class="payOpts">
+      <div class="payOpt"><label><input type="radio" name="payMethod" value="UPI" checked> UPI</label></div>
+      <div class="payOpt"><label><input type="radio" name="payMethod" value="Card"> Card</label></div>
+      <div class="payOpt"><label><input type="radio" name="payMethod" value="Net Banking"> Net Banking</label></div>
+      <div class="payOpt"><label><input type="radio" name="payMethod" value="Cash on Delivery"> COD</label></div>
+    </div>
+    <div style="font-size:11px;color:#999">Demo payment — no real money is charged.</div>
+    <div class="rowbtns">
+      <button style="background:#2e7d32;color:white" onclick="payOrder()">Pay now</button>
+      <button style="background:#eceff1" onclick="closePay()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<button id="chatFab" onclick="toggleChat()" title="Chat with Sri Assistant">💬</button>
+<div id="chatPanel">
+  <div id="chatHead">Sri Assistant <span style="font-weight:normal;font-size:11px">· online</span>
+    <span>
+      <button class="mini" onclick="clearChat()" title="Clear chat">🗑</button>
+      <button class="mini" onclick="toggleChat()" title="Minimize">—</button>
+    </span>
+  </div>
+  <div id="chatMsgs"></div>
+  <div id="chatChips"></div>
+  <div id="chatInputRow">
+    <input id="chatInput" placeholder="Ask about products, orders, cancel…">
+    <button onclick="sendChat()">➤</button>
+  </div>
+</div>
+
+<script>
+const API=(typeof sriApiBase === "function") ? sriApiBase() : window.location.origin;
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function money(n){ return '₹'+Number(n||0).toFixed(2); }
+function nowStamp(){ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+let token=localStorage.getItem('token');
+let user=JSON.parse(localStorage.getItem('user')||'null');
+if(!token || !user){ window.location.href='/'; }
+document.getElementById('userInfo').textContent = user ? user.username+' ('+user.role+')' : '';
+
+let lastProductsJson='';
+let baseList=[];              // last fetched product list (unsorted, unfiltered)
+let wishFilter=false;
+let wish=new Set();
+try{ wish=new Set(JSON.parse(localStorage.getItem('sri_wish')||'[]')); }catch(e){}
+let mdProduct=null, mdRating=0;
+let lastOrderStatus={};       // orderId -> status, for change notifications
+
+fetch(API+'/api/v1/auth/validate',{headers:{'Authorization':'Bearer '+token}}).then(r=>r.json()).then(d=>{
+  if(d.error){ logout(); } else { user=d; try{localStorage.setItem('user',JSON.stringify(d));}catch(e){} loadProducts(); viewCart(); loadOrders(); }
+});
+
+function showMsg(t,ok){const m=document.getElementById('msg');m.textContent=t;m.className='msg '+(ok?'ok':'err');m.style.display='block';setTimeout(()=>m.style.display='none',3500)}
+function toast(t,ok){
+  const d=document.createElement('div');
+  d.style.cssText='position:fixed;top:70px;right:20px;padding:12px 16px;border-radius:8px;z-index:300;box-shadow:0 4px 14px rgba(0,0,0,.2);font-size:13px;'+
+    (ok?'background:#d4edda;color:#155724':'background:#f8d7da;color:#721c24');
+  d.textContent=t; document.body.appendChild(d);
+  setTimeout(()=>d.remove(), 3500);
+}
+
+// ---------- wishlist ----------
+function saveWish(){ try{ localStorage.setItem('sri_wish', JSON.stringify([...wish])); }catch(e){}
+  document.getElementById('wishCount').textContent=wish.size;
+  document.getElementById('wishBtn').textContent=(wishFilter?'❤️':'♡')+' Wishlist ('+wish.size+')'; }
+function toggleWish(id){
+  if(wish.has(id)) wish.delete(id); else wish.add(id);
+  saveWish(); renderProducts(baseList);
+}
+function toggleWishFilter(){
+  wishFilter=!wishFilter;
+  document.getElementById('wishBtn').style.background=wishFilter?'#ffe082':'white';
+  saveWish(); renderProducts(baseList);
+}
+saveWish();
+
+// ---------- products ----------
+async function loadProducts(){
+  const r=await fetch(API+'/api/v1/products'); const data=await r.json();
+  baseList=Array.isArray(data)?data:[]; renderProducts(baseList);
+}
+async function searchProducts(){
+  const q=document.getElementById('q').value;
+  const min=document.getElementById('minPrice').value;
+  const max=document.getElementById('maxPrice').value;
+  const url=new URL(API+'/api/v1/products/search');
+  if(q) url.searchParams.set('q',q);
+  if(min) url.searchParams.set('minPrice',min);
+  if(max) url.searchParams.set('maxPrice',max);
+  const r=await fetch(url); const data=await r.json();
+  baseList=Array.isArray(data)?data:[]; renderProducts(baseList);
+}
+function clearFilters(){
+  document.getElementById('q').value=''; document.getElementById('minPrice').value=''; document.getElementById('maxPrice').value='';
+  document.getElementById('sortSel').value=''; wishFilter=false;
+  document.getElementById('wishBtn').style.background='white';
+  loadProducts();
+}
+function applySort(){ renderProducts(baseList); }
+function renderProducts(list){
+  let out=(list||[]).slice();
+  if(wishFilter) out=out.filter(p=>wish.has(p.id));
+  const s=document.getElementById('sortSel').value;
+  if(s==='price_asc') out.sort((a,b)=>a.price-b.price);
+  else if(s==='price_desc') out.sort((a,b)=>b.price-a.price);
+  else if(s==='name') out.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  // Dynamic repaint only when the rendered data actually changed.
+  const j=JSON.stringify(out);
+  if(j===lastProductsJson) return;
+  lastProductsJson=j;
+  const c=document.getElementById('products'); c.innerHTML='';
+  if(out.length===0){ c.innerHTML='<p style="color:#666">No products found'+(wishFilter?' in your wishlist':'')+'.</p>'; return; }
+  out.forEach(p=>{
+    const div=document.createElement('div'); div.className='card';
+    const stockBadge = p.stock===0 ? '<span class="badge b-out">OUT</span>'
+                     : p.stock<=5 ? '<span class="badge b-low">only '+p.stock+'</span>' : '';
+    div.innerHTML=`<button class="wish ${wish.has(p.id)?'on':''}" title="Wishlist" onclick="toggleWish('${p.id}')">${wish.has(p.id)?'❤️':'♡'}</button>
+      <h3>${escapeHtml(p.name)}${stockBadge}</h3>
+      <div class="desc">${escapeHtml(p.description||'')}</div>
+      <div class="price">${money(p.price)}</div>
+      <div style="font-size:12px;color:#888">Stock: ${p.stock}</div>
+      <button class="buy" onclick="addToCart('${p.id}')" ${p.stock===0?'disabled style="opacity:.5"':''}>${p.stock===0?'Out of stock':'Add to Cart'}</button>
+      <button class="detail" onclick="openDetail('${p.id}')">Details & Reviews</button>`;
+    c.appendChild(div);
+  });
+}
+
+// ---------- detail modal + reviews ----------
+async function openDetail(id){
+  mdProduct=baseList.find(p=>p.id===id)||null;
+  if(!mdProduct){ const r=await fetch(API+'/api/v1/products/'+id); mdProduct=await r.json(); }
+  if(!mdProduct || mdProduct.error){ return; }
+  mdRating=0;
+  document.getElementById('mdName').textContent=mdProduct.name;
+  document.getElementById('mdDesc').textContent=mdProduct.description||'No description.';
+  document.getElementById('mdPrice').textContent=money(mdProduct.price);
+  document.getElementById('mdStock').innerHTML = mdProduct.stock===0
+    ? '<span class="badge b-out">OUT OF STOCK</span>'
+    : (mdProduct.stock<=5 ? '<span class="badge b-low">Only '+mdProduct.stock+' left</span>' : 'In stock: '+mdProduct.stock);
+  document.getElementById('mdStars').textContent='☆☆☆☆☆';
+  document.getElementById('mdComment').value='';
+  const addBtn=document.getElementById('mdAddBtn');
+  addBtn.disabled = mdProduct.stock===0;
+  addBtn.onclick=()=>{ addToCart(mdProduct.id); };
+  document.getElementById('mdReviews').innerHTML='<span style="color:#888">Loading reviews…</span>';
+  document.getElementById('modal').style.display='flex';
+  loadMdReviews();
+}
+async function loadMdReviews(){
+  if(!mdProduct) return;
+  const r=await fetch(API+'/api/v1/products/'+mdProduct.id+'/reviews'); const data=await r.json();
+  const el=document.getElementById('mdReviews');
+  if(!Array.isArray(data) || data.length===0){ el.innerHTML='<span style="color:#888">No reviews yet — be the first!</span>'; return; }
+  el.innerHTML='';
+  data.forEach(rv=>{
+    const d=document.createElement('div'); d.className='revline';
+    const st=document.createElement('div'); st.className='stars'; st.style.fontSize='14px';
+    st.textContent='★'.repeat(Math.max(1,Math.min(5,rv.rating||0)))+'☆'.repeat(Math.max(0,5-(rv.rating||0)));
+    const meta=document.createElement('div'); meta.style.cssText='color:#888;font-size:11px';
+    meta.textContent=(rv.username||'someone')+' · '+String(rv.created_at||'').slice(0,16);
+    const cmt=document.createElement('div'); cmt.textContent=rv.comment||'';
+    d.appendChild(st); d.appendChild(meta); d.appendChild(cmt);
+    el.appendChild(d);
+  });
+}
+document.getElementById('mdStars').addEventListener('click',(e)=>{
+  // map click x-position within the 5 stars to 1..5
+  const rect=e.currentTarget.getBoundingClientRect();
+  const x=e.clientX-rect.left;
+  mdRating=Math.max(1, Math.min(5, Math.ceil(x/(rect.width/5))));
+  const full='★'.repeat(mdRating), empty='☆'.repeat(5-mdRating);
+  e.currentTarget.textContent=full+empty;
+});
+async function submitReview(){
+  if(!mdProduct) return;
+  if(!mdRating){ toast('Pick a star rating first (click the stars)',false); return; }
+  const comment=document.getElementById('mdComment').value;
+  const r=await fetch(API+'/api/v1/products/'+mdProduct.id+'/reviews',{
+    method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    body:JSON.stringify({rating:mdRating, comment})
+  });
+  const d=await r.json();
+  if(r.ok){ toast('Review posted — thanks!','ok'); loadMdReviews(); }
+  else toast(d.error||'Could not post review',false);
+}
+function closeModal(){ document.getElementById('modal').style.display='none'; }
+
+// ---------- cart ----------
+async function addToCart(productId, qty){
+  const r=await fetch(API+'/api/v1/cart',{
+    method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    body:JSON.stringify({productId, quantity: qty||1})
+  });
+  const d=await r.json();
+  if(r.ok){ toast('Added to cart','ok'); viewCart(); } else toast(d.error||'Failed',false);
+}
+async function cartMinus(productId, qty){
+  if(qty<=1){ await fetch(API+'/api/v1/cart/'+productId,{method:'DELETE',headers:{'Authorization':'Bearer '+token}}); }
+  else{
+    await fetch(API+'/api/v1/cart/'+productId,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});
+    await fetch(API+'/api/v1/cart',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({productId, quantity:qty-1})});
+  }
+  viewCart();
+}
+let lastCartJson='';
+async function viewCart(){
+  const r=await fetch(API+'/api/v1/cart',{headers:{'Authorization':'Bearer '+token}});
+  const data=await r.json();
+  if(!Array.isArray(data)) return; // expired token or error: leave last good cart
+  const j=JSON.stringify(data);
+  const el=document.getElementById('cartItems'); el.innerHTML='';
+  let total=0, count=0;
+  if(data.length===0){ el.innerHTML='<span style="color:#888">Cart empty</span>'; }
+  else{
+    const pr=await fetch(API+'/api/v1/products'); const products=await pr.json();
+    const map={}; (products||[]).forEach(p=>map[p.id]=p);
+    data.forEach(item=>{
+      const p=map[item.productId]||{name:item.productId, price:0};
+      const lineTotal=(p.price||0)*item.quantity;
+      total+=lineTotal; count+=item.quantity;
+      const d=document.createElement('div'); d.className='cart-item';
+      d.innerHTML=`<span style="flex:1">${escapeHtml(p.name)}</span>
+        <span style="display:flex;align-items:center;gap:5px">
+        <button class="qtybtn" onclick="cartMinus('${item.productId}',${item.quantity})">−</button>
+        <b>${item.quantity}</b>
+        <button class="qtybtn" onclick="addToCart('${item.productId}')">+</button>
+        ${money(lineTotal)}
+        <a href="#" onclick="removeFromCart('${item.productId}');return false" style="color:red;text-decoration:none">✕</a></span>`;
+      el.appendChild(d);
+    });
+  }
+  document.getElementById('cartCount').textContent=count;
+  document.getElementById('cartTotal').textContent=total.toFixed(2);
+  lastCartJson=j;
+}
+async function removeFromCart(pid){
+  await fetch(API+'/api/v1/cart/'+pid,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});
+  viewCart();
+}
+async function checkout(){
+  let snapItems=[];
+  try{
+    const cr=await fetch(API+'/api/v1/cart',{headers:{'Authorization':'Bearer '+token}});
+    const cart=await cr.json();
+    const pr=await fetch(API+'/api/v1/products'); const products=await pr.json();
+    const map={}; (products||[]).forEach(p=>map[p.id]=p);
+    (cart||[]).forEach(it=>{
+      const p=map[it.productId]||{name:'Item', price:0};
+      snapItems.push({productId:it.productId, name:p.name, price:p.price, qty:it.quantity});
+    });
+  }catch(e){}
+  const r=await fetch(API+'/api/v1/orders/checkout',{method:'POST',headers:{'Authorization':'Bearer '+token}});
+  const d=await r.json();
+  if(r.ok){
+    try{ localStorage.setItem('sri_last_bill', JSON.stringify({id:d.id, items:snapItems})); }catch(e){}
+    window.location.href='/order?id='+encodeURIComponent(d.id);
+  }
+  else toast(d.error||'Checkout failed',false);
+}
+
+// ---------- orders (+ notifications + reorder) ----------
+async function loadOrders(){
+  const el=document.getElementById('orderList');
+  try{
+    const r=await fetch(API+'/api/v1/orders',{headers:{'Authorization':'Bearer '+token}});
+    const data=await r.json();
+    if(!r.ok || !data || data.length===0){ el.innerHTML='<span style="color:#888">No orders yet</span>'; lastOrderStatus={}; return; }
+    el.innerHTML='';
+    let changed=false;
+    data.slice().reverse().forEach(o=>{
+      // status-change notification (live logistics)
+      if(lastOrderStatus[o.id] && lastOrderStatus[o.id]!==o.status){
+        changed=true;
+        toast('Order '+String(o.id).substring(0,8)+' is now '+o.status+' ✓','ok');
+        document.title='🔄 '+o.status.toUpperCase()+' — Sri Mart';
+        setTimeout(()=>{document.title='Sri Mart - Buyer Dashboard';},4000);
+      }
+      lastOrderStatus[o.id]=o.status;
+      const d=document.createElement('div'); d.className='ordrow';
+      const stColor=o.status==='delivered'?'#2e7d32':(o.status==='shipped'?'green':(o.status==='cancelled'?'#999':'#2196F3'));
+      const b1=document.createElement('b'); b1.textContent='Bill '+String(o.id).substring(0,8);
+      d.appendChild(b1);
+      d.appendChild(document.createTextNode(' · '+money(o.total)+' · '+o.itemCount+' item(s)'));
+      const b2=document.createElement('div');
+      b2.appendChild(document.createTextNode('Status: '));
+      const st=document.createElement('b'); st.style.color=stColor; st.textContent=o.status;
+      b2.appendChild(st);
+      d.appendChild(b2);
+      // track in assistant
+      const tBtn=document.createElement('button'); tBtn.textContent='Track in Assistant';
+      tBtn.onclick=()=>{ if(!chatOpen) toggleChat(); setTimeout(()=>botAsk('Track order '+o.id),150); };
+      d.appendChild(tBtn);
+      // pay now for unpaid orders
+      if(o.status==='created'){
+        const payBtn=document.createElement('button'); payBtn.textContent='💳 Pay Now';
+        payBtn.style.background='#2e7d32'; payBtn.style.color='white';
+        payBtn.onclick=()=>openPay(o);
+        d.appendChild(payBtn);
+      }
+      // cancel (direct) for active orders
+      if(o.status==='created'||o.status==='paid'){
+        const cBtn=document.createElement('button'); cBtn.textContent='Cancel';
+        cBtn.style.background='#fbe9e7'; cBtn.style.color='#bf360c';
+        cBtn.onclick=()=>cancelOrder(o.id);
+        d.appendChild(cBtn);
+      }
+      // reorder
+      const rBtn=document.createElement('button'); rBtn.textContent='Reorder';
+      rBtn.onclick=()=>reorder(o);
+      d.appendChild(rBtn);
+      el.appendChild(d);
+    });
+    if(changed) loadProducts(); // stock may have changed with the status move
+  }catch(e){ el.innerHTML='<span style="color:red">Could not load orders</span>'; }
+}
+async function reorder(o){
+  try{
+    const items=(o.items&&o.items.length)?o.items:JSON.parse(localStorage.getItem('sri_last_bill')||'{"items":[]}').items;
+    if(!items||!items.length){ toast('No item lines to reorder',false); return; }
+    let added=0;
+    for(const it of items){
+      const pid=it.productId, qty=it.qty||it.quantity||1;
+      const r=await fetch(API+'/api/v1/cart',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({productId:pid, quantity:qty})});
+      if(r.ok) added++;
+    }
+    toast(added?added+' item(s) added back to cart':'Nothing could be re-added (items may be gone)','ok');
+    viewCart();
+  }catch(e){ toast('Reorder failed',false); }
+}
+
+// ---------- profile ----------
+function openProfile(){
+  document.getElementById('pfInfo').textContent='Logged in as '+user.username+' · '+user.email+' · role: '+user.role;
+  document.getElementById('pfUser').value=user.username||'';
+  document.getElementById('pfEmail').value=user.email||'';
+  document.getElementById('pfPass').value='';
+  document.getElementById('pmodal').style.display='flex';
+}
+// ---------- payment (demo) ----------
+let payOrderObj=null;
+function openPay(o){
+  payOrderObj=o;
+  document.getElementById('payInfo').textContent='Bill '+String(o.id).substring(0,8)+' · '+o.itemCount+' item(s)';
+  document.getElementById('payTotal').textContent=money(o.total);
+  document.getElementById('paym').style.display='flex';
+}
+function closePay(){ document.getElementById('paym').style.display='none'; payOrderObj=null; }
+async function payOrder(){
+  if(!payOrderObj) return;
+  const sel=document.querySelector('input[name="payMethod"]:checked');
+  const method=sel?sel.value:'UPI';
+  try{
+    const r=await fetch(API+'/api/v1/orders/'+payOrderObj.id+'/status',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'paid'})});
+    const d=await r.json();
+    if(r.ok && !d.error){
+      toast('Payment successful via '+method+' ('+money(d.total!=null?d.total:payOrderObj.total)+')','ok');
+      closePay(); loadOrders();
+    } else toast(d.error||'Payment failed (HTTP '+r.status+')',false);
+  }catch(e){ toast('Payment failed',false); }
+}
+async function cancelOrder(id){
+  if(!confirm('Cancel this order?')) return;
+  try{
+    const r=await fetch(API+'/api/v1/orders/'+id+'/status',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'cancelled'})});
+    const d=await r.json();
+    if(r.ok && !d.error){ toast('Order cancelled','ok'); loadOrders(); }
+    else toast(d.error||'Cancel failed',false);
+  }catch(e){ toast('Cancel failed',false); }
+}
+async function saveProfile(){
+  const body={username:document.getElementById('pfUser').value.trim(), email:document.getElementById('pfEmail').value.trim()};
+  const pw=document.getElementById('pfPass').value;
+  if(pw) body.password=pw;
+  const r=await fetch(API+'/api/v1/profile',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});
+  const d=await r.json();
+  if(r.ok && !d.error){
+    user=Object.assign({},user,d);
+    try{ localStorage.setItem('user',JSON.stringify(user)); }catch(e){}
+    document.getElementById('userInfo').textContent=user.username+' ('+user.role+')';
+    document.getElementById('pmodal').style.display='none';
+    toast(pw?'Profile saved — other sessions signed out':'Profile saved','ok');
+  } else toast(d.error||'Update failed',false);
+}
+
+// ---------- Sri Assistant (proper chat panel) ----------
+let chatOpen=false, chatGreeted=false;
+function toggleChat(){
+  chatOpen=!chatOpen;
+  document.getElementById('chatPanel').style.display=chatOpen?'flex':'none';
+  if(chatOpen && !chatGreeted){ chatGreeted=true; botAsk('Hello'); }
+  if(chatOpen){ document.getElementById('chatInput').focus(); }
+}
+function clearChat(){ document.getElementById('chatMsgs').innerHTML=''; document.getElementById('chatChips').innerHTML=''; chatGreeted=true; botAsk('Hello'); }
+function chatAddMsg(who,text,stampIt){
+  const box=document.getElementById('chatMsgs');
+  const d=document.createElement('div');
+  d.style.cssText='margin:7px 0;text-align:'+(who==='me'?'right':'left');
+  const b=document.createElement('div');
+  b.style.cssText='display:inline-block;padding:8px 11px;max-width:85%;white-space:pre-line;word-break:break-word;text-align:left;'+(who==='me'?'background:#4CAF50;color:white;border-radius:12px 12px 2px 12px;':'background:white;color:#333;border:1px solid #e0e0e0;border-radius:12px 12px 12px 2px;');
+  b.textContent=String(text).replace(/^Sri Assistant:\s*/,'');
+  d.appendChild(b);
+  if(stampIt!==false){
+    const s=document.createElement('div'); s.className='stamp'; s.textContent=nowStamp();
+    s.style.textAlign=who==='me'?'right':'left';
+    d.appendChild(s);
+  }
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+  return d;
+}
+function chatChips(list){
+  const c=document.getElementById('chatChips'); c.innerHTML='';
+  (list||[]).slice(0,4).forEach(s=>{
+    const btn=document.createElement('button');
+    btn.textContent=s;
+    btn.style.cssText='border:1px solid #4CAF50;color:#2e7d32;background:white;border-radius:14px;padding:4px 10px;font-size:12px;cursor:pointer;';
+    btn.onclick=()=>{ document.getElementById('chatInput').value=s; sendChat(); };
+    c.appendChild(btn);
+  });
+}
+function chatProductCard(p){
+  const box=document.getElementById('chatMsgs');
+  const d=document.createElement('div'); d.style.cssText='margin:6px 0;text-align:left;';
+  const c=document.createElement('div');
+  c.style.cssText='border:1px solid #ddd;border-radius:8px;padding:8px;font-size:12px;background:#fafafa;display:inline-block;';
+  const name=document.createElement('div'); name.style.fontWeight='bold'; name.textContent=p.name;
+  const meta=document.createElement('div'); meta.textContent=money(p.price)+' · Stock: '+p.stock;
+  const btn=document.createElement('button');
+  btn.textContent='Add to Cart';
+  btn.style.cssText='margin-top:6px;padding:6px 10px;background:#4CAF50;color:white;border:none;border-radius:5px;cursor:pointer;';
+  btn.onclick=()=>addToCart(p.id);
+  c.appendChild(name); c.appendChild(meta); c.appendChild(btn);
+  d.appendChild(c); box.appendChild(d); box.scrollTop=box.scrollHeight;
+}
+function chatOrderCard(o){
+  const box=document.getElementById('chatMsgs');
+  const d=document.createElement('div'); d.style.cssText='margin:6px 0;text-align:left;';
+  const c=document.createElement('div');
+  c.style.cssText='border:1px solid #ddd;border-radius:8px;padding:8px;font-size:12px;background:#fafafa;display:inline-block;';
+  const t=document.createElement('div'); t.style.fontWeight='bold';
+  t.textContent='Bill '+String(o.id).substring(0,8);
+  const meta=document.createElement('div'); meta.textContent=money(o.total)+' · '+(o.itemCount||0)+' item(s)';
+  const st=document.createElement('div');
+  const color=o.status==='delivered'?'#2e7d32':(o.status==='cancelled'?'#999':'#ff9800');
+  st.innerHTML='Status: <b style="color:'+color+'">'+escapeHtml(o.status)+'</b>';
+  c.appendChild(t); c.appendChild(meta); c.appendChild(st);
+  if(o.status==='created'||o.status==='paid'){
+    const cb=document.createElement('button');
+    cb.textContent='Cancel this order';
+    cb.style.cssText='margin-top:6px;padding:5px 9px;background:#fbe9e7;color:#bf360c;border:1px solid #ffccbc;border-radius:5px;cursor:pointer;font-size:11px;';
+    cb.onclick=()=>botAsk('Cancel my order');
+    c.appendChild(cb);
+  }
+  d.appendChild(c); box.appendChild(d); box.scrollTop=box.scrollHeight;
+}
+async function botAsk(text){
+  chatAddMsg('me',text);
+  const box=document.getElementById('chatMsgs');
+  const typingWrap=document.createElement('div');
+  typingWrap.style.cssText='margin:6px 0;text-align:left';
+  typingWrap.innerHTML='<span class="typing">Sri Assistant is typing…</span>';
+  box.appendChild(typingWrap); box.scrollTop=box.scrollHeight;
+  try{
+    const r=await fetch(API+'/api/v1/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({message:text})});
+    const d=await r.json();
+    typingWrap.remove();
+    if(!r.ok){ chatAddMsg('bot','Sorry, something went wrong. Try again.'); return; }
+    chatAddMsg('bot', d.reply||'…');
+    chatChips(d.suggestions);
+    (d.products||[]).forEach(chatProductCard);
+    (d.orders||[]).forEach(chatOrderCard);
+    if(d.cartCount!==undefined) viewCart();
+  }catch(e){ typingWrap.remove(); chatAddMsg('bot','Cannot reach assistant. Is the server running?'); }
+}
+function sendChat(){
+  const inp=document.getElementById('chatInput');
+  const t=inp.value.trim(); if(!t) return; inp.value=''; botAsk(t);
+}
+document.getElementById('chatInput').addEventListener('keypress',(e)=>{ if(e.key==='Enter') sendChat(); });
+
+// ---------- fully dynamic: live refresh (products/cart/orders, 15s) ----------
+let liveRefreshing=false;
+setInterval(()=>{
+  if(document.visibilityState!=='visible' || liveRefreshing) return;
+  liveRefreshing=true;
+  (async()=>{
+    try{
+      const q=document.getElementById('q').value.trim();
+      const min=document.getElementById('minPrice').value;
+      const max=document.getElementById('maxPrice').value;
+      if(q||min||max) await searchProducts(); else await loadProducts();
+      await viewCart();
+      await loadOrders();
+    }catch(e){}
+    liveRefreshing=false;
+  })();
+},15000);
+if(window.location.hash==='#chat' && !chatOpen){ toggleChat(); }
+async function logout(){
+  await fetch(API+'/api/v1/auth/logout',{method:'POST',headers:{'Authorization':'Bearer '+token}});
+  localStorage.removeItem('token'); localStorage.removeItem('user'); window.location.href='/';
+}
+</script>
+</body>
+</html>
