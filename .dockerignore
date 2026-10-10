@@ -1,0 +1,10 @@
+build/
+.git/
+.vscode/
+*.zip
+*.exe
+pgsql_data/
+postgresql/
+logs/
+.env
+*.md

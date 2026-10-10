@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/buyer.html", "destination": "/config/buyer.html" },
+    { "source": "/buyer", "destination": "/config/buyer.html" },
+    { "source": "/seller.html", "destination": "/config/seller.html" },
+    { "source": "/seller", "destination": "/config/seller.html" },
+    { "source": "/admin.html", "destination": "/config/admin.html" },
+    { "source": "/admin", "destination": "/config/admin.html" },
+    { "source": "/order.html", "destination": "/config/order.html" },
+    { "source": "/order", "destination": "/config/order.html" },
+    { "source": "/", "destination": "/config/login.html" }
+  ]
+}

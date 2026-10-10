@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: srinivasan-mart
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: PGHOST
+        fromService:
+          type: postgres
+          name: srinivasan-mart-db
+          property: host
+      - key: PGPORT
+        fromService:
+          type: postgres
+          name: srinivasan-mart-db
+          property: port
+      - key: PGDATABASE
+        fromService:
+          type: postgres
+          name: srinivasan-mart-db
+          property: database
+      - key: PGUSER
+        fromService:
+          type: postgres
+          name: srinivasan-mart-db
+          property: user
+      - key: PGPASSWORD
+        fromService:
+          type: postgres
+          name: srinivasan-mart-db
+          property: password
+databases:
+  - name: srinivasan-mart-db
+    plan: free
+    databaseName: sri_mart
