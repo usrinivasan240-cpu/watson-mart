@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sri Mart - Admin</title>
+<script src="/config/api-config.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;background:#f0f2f5}
+.header{background:#673ab7;color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:20px}
+.header button{padding:7px 14px;border:none;border-radius:5px;cursor:pointer;background:#fff;color:#673ab7;margin-left:8px;font-size:13px}
+.hdr-right{display:flex;align-items:center;gap:12px;font-size:14px}
+.live{font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px}
+.tabs{display:flex;gap:4px;background:#5e35b1;padding:0 16px;flex-wrap:wrap}
+.tabs button{padding:12px 18px;border:none;background:transparent;color:#e4d9ff;cursor:pointer;font-size:14px;border-bottom:3px solid transparent}
+.tabs button.active{background:rgba(255,255,255,.12);color:#fff;border-bottom-color:#ffd54f}
+.wrap{max-width:1180px;margin:18px auto;padding:0 16px}
+.panel{display:none}.panel.active{display:block}
+.msg{padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:14px}
+.msg.ok{background:#e6f7ed;color:#1b7e43}.msg.err{background:#fdecea;color:#c0392b}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:14px}
+.stat{background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.stat-t{font-size:12px;color:#777;text-transform:uppercase;letter-spacing:.05em}
+.stat-v{font-size:26px;font-weight:bold;color:#333;margin:4px 0}
+.stat-s{font-size:12px;color:#888}
+.card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:14px}
+.card h2{font-size:16px;margin-bottom:10px;color:#444;display:flex;justify-content:space-between;align-items:center}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:9px 8px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}
+th{background:#f6f3fd;color:#555}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable.active{color:#673ab7}
+tr.sub td{background:#faf8ff}
+.pill{display:inline-block;padding:3px 9px;border-radius:11px;font-size:11px;font-weight:bold;text-transform:capitalize}
+.pill.blue{background:#e3f2fd;color:#1565c0}.pill.cyan{background:#e0f7fa;color:#00838f}
+.pill.purple{background:#f3e5f5;color:#7b1fa2}.pill.green{background:#e8f5e9;color:#2e7d32}
+.pill.red{background:#ffebee;color:#c62828}.pill.grey{background:#eee;color:#555}
+.acts button,.acts select{padding:5px 9px;border:none;border-radius:4px;cursor:pointer;font-size:12px;margin-right:4px}
+.acts select{border:1px solid #ccc;background:#fff}
+.b-blue{background:#e3f2fd;color:#1565c0}.b-green{background:#e8f5e9;color:#2e7d32}
+.b-purple{background:#f3e5f5;color:#7b1fa2}.b-grey{background:#eee;color:#333}
+.b-red{background:#ffebee;color:#c62828}
+.b-save{background:#673ab7;color:#fff;border:none;border-radius:5px;padding:8px 14px !important;cursor:pointer;font-size:13px}
+.mono{font-family:Consolas,monospace;font-size:12px}
+.empty{color:#999;text-align:center;padding:22px}
+.role{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:bold}
+.role.admin{background:#ffe0b2;color:#e65100}.role.seller{background:#e1f5fe;color:#0277bd}.role.customer{background:#f1f8e9;color:#558b2f}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50}
+.modal.show{display:flex}
+.modal-box{background:#fff;border-radius:10px;width:min(460px,92vw);padding:18px;max-height:90vh;overflow:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.modal-head h3{font-size:16px}
+.modal-head button{border:none;background:none;font-size:18px;cursor:pointer}
+.modal label{display:block;font-size:13px;color:#555;margin-bottom:10px}
+.modal input,.modal select,.modal textarea{width:100%;padding:8px;border:1px solid #ccc;border-radius:5px;margin-top:4px;font-size:14px;font-family:Arial}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.modal-foot button{padding:8px 16px;border:1px solid #ccc;background:#f5f5f5;border-radius:5px;cursor:pointer}
+.modal-foot .save{background:#673ab7;color:#fff;border-color:#673ab7}
+.stats-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.items{margin:4px 0 4px 18px;font-size:13px;line-height:1.7}
+.toggle-link{color:#673ab7;cursor:pointer;font-size:12px;text-decoration:underline;background:none;border:none}
+@media print{.header,.tabs,.acts,.no-print{display:none !important}body{background:#fff}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>⚙️ Sri Mart Admin</h1>
+  <div class="hdr-right">
+    <span id="userInfo"></span>
+    <label class="live"><input type="checkbox" id="liveChk" checked> Live (10s)</label>
+    <button onclick="window.location.href='/buyer'">Shop</button>
+    <button onclick="reload(currentTab,true)">↻ Refresh</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+</div>
+<nav class="tabs" id="tabs">
+  <button data-tab="dashboard" class="active">Dashboard</button>
+  <button data-tab="orders">Orders</button>
+  <button data-tab="sellers">Sellers</button>
+  <button data-tab="analysis">Seller Analysis</button>
+  <button data-tab="products">Products</button>
+  <button data-tab="users">Users</button>
+</nav>
+<div class="wrap">
+  <div id="msg" class="msg" style="display:none"></div>
+
+  <section class="panel active" id="tab-dashboard">
+    <div class="cards" id="dashCards"></div>
+    <div class="card"><h2>Orders by status</h2><div id="dashStatus" class="stats-row"></div></div>
+  </section>
+
+  <section class="panel" id="tab-orders">
+    <div class="card"><h2>Orders
+      <select id="ordFilter" onchange="orderFilter=this.value;reload('orders',true)">
+        <option value="">All statuses</option><option value="created">created</option><option value="paid">paid</option>
+        <option value="shipped">shipped</option><option value="delivered">delivered</option><option value="cancelled">cancelled</option>
+      </select></h2>
+      <table><thead><tr><th>Order</th><th>Buyer</th><th>Total ₹</th><th>Status</th><th>Placed</th><th>Items</th><th>Actions</th></tr></thead>
+      <tbody id="orderRows"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody></table>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-sellers">
+    <div class="card"><h2>Sellers</h2>
+      <table><thead><tr><th>Seller</th><th>Email</th><th>Joined</th><th>Products</th><th>Stock</th><th>Inventory ₹</th><th>Units sold</th><th>Revenue ₹</th><th>Orders</th></tr></thead>
+      <tbody id="sellerRows"><tr><td colspan="9" class="empty">Loading…</td></tr></tbody></table>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-analysis">
+    <div class="cards" id="anaCards"></div>
+    <div class="card"><h2>Sellers × products × price</h2>
+      <table><thead><tr><th>Seller</th><th>Products</th><th>Avg / Min / Max price ₹</th><th>Stock</th><th>Units</th><th>Revenue ₹</th><th>Top product</th><th>Catalog</th></tr></thead>
+      <tbody id="anaSellerRows"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody></table>
+    </div>
+    <div class="card"><h2>Product performance <span style="font-size:12px;color:#888;font-weight:normal">click a column to sort</span></h2>
+      <table><thead><tr><th>Product</th><th>Owner</th>
+        <th class="sortable" id="srt-price" onclick="sortAnalysis('price')">Price ₹</th>
+        <th class="sortable" id="srt-stock" onclick="sortAnalysis('stock')">Stock</th>
+        <th class="sortable" id="srt-units_sold" onclick="sortAnalysis('units_sold')">Units sold</th>
+        <th class="sortable" id="srt-revenue" onclick="sortAnalysis('revenue')">Revenue ₹</th></tr></thead>
+      <tbody id="anaProdRows"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody></table>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-products">
+    <div class="card"><h2>Products <button class="b-save" onclick="openProductModal(null)">＋ Add product</button></h2>
+      <table><thead><tr><th>Product</th><th>Owner</th><th>Price ₹</th><th>Stock</th><th>Units sold</th><th>Revenue ₹</th><th>Actions</th></tr></thead>
+      <tbody id="prodRows"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody></table>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-users">
+    <div class="card"><h2>Users</h2>
+      <table><thead><tr><th>User</th><th>Email</th><th>Role</th><th>Joined</th><th>Orders</th><th>Total spent ₹</th><th>Last status</th><th>Actions</th></tr></thead>
+      <tbody id="userRows"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody></table>
+    </div>
+  </section>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="modalTitle">Edit</h3><button onclick="closeModal()">✕</button></div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const API=(typeof sriApiBase === "function") ? sriApiBase() : window.location.origin;
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function el(id){ return document.getElementById(id); }
+function money(n){ return Number(n||0).toFixed(2); }
+function shortId(s){ s=String(s||''); return s.length>12 ? s.slice(0,8)+'…' : s; }
+
+let token=localStorage.getItem('token');
+let user=JSON.parse(localStorage.getItem('user')||'null');
+if(!token || !user){ window.location.href='/'; }
+if(user && user.role!=='admin'){ window.location.href='/buyer'; }
+el('userInfo').textContent=user?user.username:'';
+
+let msgT=null;
+function showMsg(text,ok){
+  const m=el('msg'); m.textContent=text; m.className='msg '+(ok?'ok':'err'); m.style.display='block';
+  clearTimeout(msgT); msgT=setTimeout(()=>{ m.style.display='none'; },3500);
+}
+
+async function api(method,path,body){
+  const h={'Authorization':'Bearer '+token};
+  let payload;
+  if(body!==undefined && body!==null){ h['Content-Type']='application/json'; payload=JSON.stringify(body); }
+  const r=await fetch(API+path,{method,headers:h,body:payload});
+  let d=null; try{ d=await r.json(); }catch(e){}
+  if(r.status===401){ localStorage.removeItem('token'); localStorage.removeItem('user'); window.location.href='/'; }
+  return {s:r.status,d};
+}
+
+async function logout(){
+  try{ await fetch(API+'/api/v1/auth/logout',{method:'POST',headers:{'Authorization':'Bearer '+token}}); }catch(e){}
+  localStorage.clear(); window.location.href='/';
+}
+
+// ---------------------------------------------------------------- tabs / data
+let currentTab='dashboard';
+let orderFilter='';
+const data={};
+let aSort={key:'revenue',dir:-1};
+
+el('tabs').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b||!b.dataset.tab) return;
+  switchTab(b.dataset.tab);
+});
+function switchTab(name){
+  currentTab=name;
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='tab-'+name));
+  reload(name,true);
+}
+async function reload(name,notify){
+  try{
+    if(name==='dashboard') await loadDashboard();
+    else if(name==='orders') await loadOrders();
+    else if(name==='sellers') await loadSellers();
+    else if(name==='analysis') await loadAnalysis();
+    else if(name==='products') await loadProducts();
+    else if(name==='users') await loadUsers();
+    if(notify) showMsg('Loaded '+name,true);
+  }catch(err){ if(notify) showMsg(String(err&&err.message||err||'Failed to load'),false); }
+}
+// Live auto-refresh of the active tab (only while the tab is visible).
+setInterval(()=>{
+  if(document.visibilityState!=='visible') return;
+  if(!el('liveChk').checked) return;
+  reload(currentTab,false);
+},10000);
+
+function card(t,v,sub){
+  return '<div class="stat"><div class="stat-t">'+escapeHtml(t)+'</div><div class="stat-v">'+escapeHtml(String(v))+'</div><div class="stat-s">'+escapeHtml(sub)+'</div></div>';
+}
+function pill(s,extra){
+  const c={created:'blue',paid:'cyan',shipped:'purple',delivered:'green',cancelled:'red'}[s]||'grey';
+  return '<span class="pill '+c+'">'+escapeHtml(s)+(extra?' · '+escapeHtml(extra):'')+'</span>';
+}
+function roleBadge(r){
+  const x=String(r||'customer');
+  return '<span class="role '+escapeHtml(x)+'">'+escapeHtml(x)+'</span>';
+}
+
+// ---------------------------------------------------------------- dashboard
+async function loadDashboard(){
+  const {s,d}=await api('GET','/api/v1/admin/overview');
+  if(s!==200 || (d&&d.error)) throw new Error((d&&d.error)||'Overview failed');
+  data.overview=d;
+  el('dashCards').innerHTML =
+    card('Users',d.users.total,'customers '+d.users.customers+' · sellers '+d.users.sellers+' · admins '+d.users.admins)+
+    card('Products',d.products.total,'stock '+d.products.units+' units · value ₹'+money(d.products.inventoryValue))+
+    card('Stock alerts',(d.products.lowStock+d.products.outOfStock),'low stock (≤5): '+d.products.lowStock+' · out of stock: '+d.products.outOfStock)+
+    card('Orders',d.orders.total,'₹'+money(d.orders.grossRevenue)+' gross · ₹'+money(d.orders.activeRevenue)+' active');
+  const bs=d.orders.byStatus||[];
+  el('dashStatus').innerHTML = bs.length
+    ? bs.map(x=>pill(x.status,x.count+' orders · ₹'+money(x.revenue))).join('')
+    : '<span class="empty">No orders yet</span>';
+}
+
+// ---------------------------------------------------------------- orders
+async function loadOrders(){
+  const url='/api/v1/admin/orders'+(orderFilter?'?status='+encodeURIComponent(orderFilter):'');
+  const {s,d}=await api('GET',url);
+  if(s!==200 || !Array.isArray(d)) throw new Error((d&&d.error)||'Orders failed');
+  data.orders=d;
+  const tb=el('orderRows'); tb.innerHTML='';
+  if(!d.length){ tb.innerHTML='<tr><td colspan="7" class="empty">No orders'+(orderFilter?' with status '+escapeHtml(orderFilter):'')+'</td></tr>'; return; }
+  d.forEach((o,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td class="mono">'+escapeHtml(shortId(o.id))+'</td>'+
+      '<td>'+escapeHtml(o.username||o.userId||'')+'</td>'+
+      '<td>'+money(o.total)+'</td>'+
+      '<td>'+pill(o.status)+'</td>'+
+      '<td>'+escapeHtml(o.created_at||'')+'</td>'+
+      '<td>'+escapeHtml(String(o.itemCount))+'</td>'+
+      '<td class="acts">'+
+        '<select onchange="orderStatus('+i+',this.value)"><option value="">Set status…</option>'+
+          ['created','paid','shipped','delivered','cancelled'].map(v=>'<option value="'+v+'"'+(o.status===v?' disabled':'')+'>'+v+'</option>').join('')+
+        '</select>'+
+        '<button class="b-grey" onclick="toggleItems(\''+o.id+'\')">Items</button>'+
+      '</td>';
+    tb.appendChild(tr);
+    const tr2=document.createElement('tr');
+    tr2.id='items-'+o.id; tr2.className='sub';
+    // Remember which item panels were open across live refreshes.
+    tr2.style.display = expandedItems.has(o.id) ? '' : 'none';
+    const lis=(o.items||[]).map(it=>'<li>'+escapeHtml(it.name)+' ×'+escapeHtml(String(it.quantity))+' — ₹'+money(Number(it.price)*Number(it.quantity))+'</li>');
+    tr2.innerHTML='<td colspan="7"><ul class="items">'+(lis.length?lis.join(''):'<li>No line items recorded</li>')+'</ul></td>';
+    tb.appendChild(tr2);
+  });
+}
+const expandedItems=new Set();
+function toggleItems(id){
+  const r=el('items-'+id); if(!r) return;
+  const show = r.style.display==='none';
+  r.style.display = show ? '' : 'none';
+  if(show) expandedItems.add(id); else expandedItems.delete(id);
+}
+async function orderStatus(i,value){
+  if(!value) return;
+  const o=(data.orders||[])[i];
+  if(!o) return;
+  const {s,d}=await api('PUT','/api/v1/orders/'+encodeURIComponent(o.id)+'/status',{status:value});
+  if(s===200){ showMsg('Order '+shortId(o.id)+' → '+value,true); reload('orders',false); }
+  else showMsg((d&&d.error)||'Status update failed',false);
+}
+
+// ---------------------------------------------------------------- sellers
+async function loadSellers(){
+  const {s,d}=await api('GET','/api/v1/admin/sellers');
+  if(s!==200 || !Array.isArray(d)) throw new Error((d&&d.error)||'Sellers failed');
+  data.sellers=d;
+  const tb=el('sellerRows'); tb.innerHTML='';
+  if(!d.length){ tb.innerHTML='<tr><td colspan="9" class="empty">No sellers yet (users with role "seller")</td></tr>'; return; }
+  d.forEach(x=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td>'+escapeHtml(x.username)+' '+roleBadge(x.role||'seller')+'</td>'+
+      '<td>'+escapeHtml(x.email||'')+'</td>'+
+      '<td>'+escapeHtml(x.created_at||'')+'</td>'+
+      '<td>'+escapeHtml(String(x.productCount))+'</td>'+
+      '<td>'+escapeHtml(String(x.stockUnits))+'</td>'+
+      '<td>'+money(x.inventoryValue)+'</td>'+
+      '<td>'+escapeHtml(String(x.unitsSold))+'</td>'+
+      '<td><b>'+money(x.revenue)+'</b></td>'+
+      '<td>'+escapeHtml(String(x.orders))+'</td>';
+    tb.appendChild(tr);
+  });
+}
+
+// ---------------------------------------------------------------- seller analysis
+async function loadAnalysis(){
+  const {s,d}=await api('GET','/api/v1/admin/analytics');
+  if(s!==200 || (d&&d.error)) throw new Error((d&&d.error)||'Analytics failed');
+  data.analytics=d;
+  // Re-apply the current sort so live refresh never resets the table.
+  if(d.products) d.products.sort((a,b)=>((Number(a[aSort.key])||0)-(Number(b[aSort.key])||0))*aSort.dir);
+  document.querySelectorAll('#tab-analysis th.sortable').forEach(th=>th.classList.toggle('active',th.id==='srt-'+aSort.key));
+  renderAnalysis();
+}
+function renderAnalysis(){
+  const d=data.analytics; if(!d) return;
+  const pr=d.prices||{}, or=d.orders||{};
+  el('anaCards').innerHTML =
+    card('Inventory value','₹'+money(pr.inventoryValue),'across '+(d.products||[]).length+' products')+
+    card('Avg price','₹'+money(pr.avgPrice),'min ₹'+money(pr.minPrice)+' · max ₹'+money(pr.maxPrice))+
+    card('Stock alerts',(Number(pr.lowStock||0)+Number(pr.outOfStock||0)),'low '+pr.lowStock+' · out '+pr.outOfStock)+
+    card('Revenue','₹'+money(or.grossRevenue),'₹'+money(or.activeRevenue)+' active · '+(or.total||0)+' orders');
+
+  const sb=el('anaSellerRows'); sb.innerHTML='';
+  const sellers=d.sellers||[];
+  if(!sellers.length) sb.innerHTML='<tr><td colspan="8" class="empty">No sellers yet</td></tr>';
+  sellers.forEach((x,i)=>{
+    const tr=document.createElement('tr');
+    const n=(x.products||[]).length;
+    tr.innerHTML=
+      '<td>'+escapeHtml(x.username)+'<br>'+roleBadge(x.role||'')+(x.email?'<br><span style="font-size:11px;color:#888">'+escapeHtml(x.email)+'</span>':'')+'</td>'+
+      '<td>'+escapeHtml(String(x.productCount))+'</td>'+
+      '<td>'+money(x.avgPrice)+' / '+money(x.minPrice)+' / '+money(x.maxPrice)+'</td>'+
+      '<td>'+escapeHtml(String(x.stockUnits))+'</td>'+
+      '<td>'+escapeHtml(String(x.unitsSold))+'</td>'+
+      '<td><b>'+money(x.revenue)+'</b></td>'+
+      '<td>'+escapeHtml(x.topProductName||'—')+(x.topProductUnits?'<br><span style="font-size:11px;color:#888">'+x.topProductUnits+' units · ₹'+money(x.topProductRevenue)+'</span>':'')+'</td>'+
+      '<td>'+(n?'<button class="toggle-link" onclick="toggleSeller('+i+')">Products ('+n+')</button>':'<span style="color:#aaa">none</span>')+'</td>';
+    sb.appendChild(tr);
+    if(n){
+      const tr2=document.createElement('tr'); tr2.id='sellP-'+i; tr2.className='sub'; tr2.style.display='none';
+      tr2.innerHTML='<td colspan="8"><ul class="items">'+(x.products||[]).map(p=>
+        '<li>'+escapeHtml(p.name)+' — ₹'+money(p.price)+' · stock '+escapeHtml(String(p.stock))+' · sold '+escapeHtml(String(p.units_sold))+' · revenue ₹'+money(p.revenue)+'</li>').join('')+'</ul></td>';
+      sb.appendChild(tr2);
+    }
+  });
+  renderAnaProducts();
+}
+function toggleSeller(i){ const r=el('sellP-'+i); if(r) r.style.display = r.style.display==='none' ? '' : 'none'; }
+function sortAnalysis(key){
+  const d=data.analytics; if(!d||!Array.isArray(d.products)) return;
+  if(aSort.key===key) aSort.dir*=-1; else { aSort.key=key; aSort.dir=-1; }
+  d.products.sort((a,b)=>((Number(a[key])||0)-(Number(b[key])||0))*aSort.dir);
+  document.querySelectorAll('#tab-analysis th.sortable').forEach(th=>th.classList.toggle('active',th.id==='srt-'+key));
+  renderAnaProducts();
+}
+function renderAnaProducts(){
+  const list=(data.analytics&&data.analytics.products)||[];
+  const tb=el('anaProdRows'); tb.innerHTML='';
+  if(!list.length){ tb.innerHTML='<tr><td colspan="6" class="empty">No products</td></tr>'; return; }
+  list.forEach(p=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td>'+escapeHtml(p.name)+'</td>'+
+      '<td>'+escapeHtml(p.ownerName||'(unassigned)')+'</td>'+
+      '<td>'+money(p.price)+'</td>'+
+      '<td>'+escapeHtml(String(p.stock))+(p.stock<=5?' ⚠':'')+'</td>'+
+      '<td>'+escapeHtml(String(p.units_sold))+'</td>'+
+      '<td><b>'+money(p.revenue)+'</b></td>';
+    tb.appendChild(tr);
+  });
+}
+
+// ---------------------------------------------------------------- products CRUD
+async function loadProducts(){
+  const {s,d}=await api('GET','/api/v1/admin/analytics');
+  if(s!==200 || (d&&d.error)) throw new Error((d&&d.error)||'Products failed');
+  data.analytics=d;
+  renderProducts();
+}
+function renderProducts(){
+  const list=(data.analytics&&data.analytics.products)||[];
+  const tb=el('prodRows'); tb.innerHTML='';
+  if(!list.length){ tb.innerHTML='<tr><td colspan="7" class="empty">No products — click “＋ Add product”</td></tr>'; return; }
+  list.forEach((p,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td>'+escapeHtml(p.name)+'<br><span style="font-size:11px;color:#888">'+escapeHtml(p.description||'')+'</span></td>'+
+      '<td>'+escapeHtml(p.ownerName||'(unassigned)')+'</td>'+
+      '<td>'+money(p.price)+'</td>'+
+      '<td>'+escapeHtml(String(p.stock))+(p.stock<=5?' ⚠':'')+'</td>'+
+      '<td>'+escapeHtml(String(p.units_sold))+'</td>'+
+      '<td>'+money(p.revenue)+'</td>'+
+      '<td class="acts"><button class="b-blue" onclick="openProductModal('+i+')">Edit</button>'+
+      '<button class="b-red" onclick="delProduct('+i+')">Delete</button></td>';
+    tb.appendChild(tr);
+  });
+}
+function openProductModal(i){
+  const list=(data.analytics&&data.analytics.products)||[];
+  const p=(i===null||i===undefined) ? null : list[i];
+  modalMode='product'; modalId=p?p.id:null;
+  el('modalTitle').textContent=p?'Edit product':'New product';
+  el('modalBody').innerHTML=
+    '<label>Name<input id="fName" maxlength="255" value="'+escapeHtml(p?p.name:'')+'"></label>'+
+    '<label>Description<textarea id="fDesc" rows="3" maxlength="5000">'+escapeHtml(p?(p.description||''):'')+'</textarea></label>'+
+    '<label>Price (₹)<input id="fPrice" type="number" min="0" step="0.01" value="'+(p?p.price:'')+'"></label>'+
+    '<label>Stock<input id="fStock" type="number" min="0" step="1" value="'+(p?p.stock:'0')+'"></label>'+
+    (p?'':'<label>Assign to seller (user id, blank = you)<input id="fOwner" placeholder="e.g. seller user id" value=""></label>')+
+    '<div class="modal-foot"><button onclick="closeModal()">Cancel</button><button class="save" onclick="saveModal()">Save</button></div>';
+  el('modal').classList.add('show');
+}
+async function delProduct(i){
+  const list=(data.analytics&&data.analytics.products)||[];
+  const p=list[i]; if(!p) return;
+  if(!window.confirm('Delete product "'+p.name+'"? This cannot be undone.')) return;
+  const {s,d}=await api('DELETE','/api/v1/products/'+encodeURIComponent(p.id));
+  if(s===200){ showMsg('Deleted "'+p.name+'"',true); reload('products',false); }
+  else showMsg((d&&d.error)||'Delete failed',false);
+}
+
+// ---------------------------------------------------------------- users CRUD
+async function loadUsers(){
+  const [u,c]=await Promise.all([
+    api('GET','/api/v1/auth/users'),
+    api('GET','/api/v1/admin/customers')
+  ]);
+  if(u.s!==200 || !Array.isArray(u.d)) throw new Error((u.d&&u.d.error)||'Users failed');
+  data.users=u.d;
+  data.cust={};
+  if(c.s===200 && Array.isArray(c.d)) c.d.forEach(x=>{ data.cust[x.id]=x; });
+  renderUsers();
+}
+function renderUsers(){
+  const tb=el('userRows'); tb.innerHTML='';
+  const list=data.users||[];
+  if(!list.length){ tb.innerHTML='<tr><td colspan="8" class="empty">No users</td></tr>'; return; }
+  list.forEach((u,i)=>{
+    const c=(data.cust||{})[u.id]||{};
+    const isMe = user && u.id===user.id;
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td>'+escapeHtml(u.username)+(isMe?' <span style="font-size:11px;color:#888">(you)</span>':'')+'</td>'+
+      '<td>'+escapeHtml(u.email||'')+'</td>'+
+      '<td>'+roleBadge(u.role)+'</td>'+
+      '<td>'+escapeHtml(u.created_at||'')+'</td>'+
+      '<td>'+escapeHtml(String(c.orderCount||0))+'</td>'+
+      '<td>'+money(c.totalSpent)+'</td>'+
+      '<td>'+(c.lastStatus?pill(c.lastStatus):'—')+'</td>'+
+      '<td class="acts"><button class="b-blue" onclick="openUserModal('+i+')">Edit</button>'+
+      (isMe?'<button class="b-grey" disabled title="You cannot delete your own account">Delete</button>'
+           :'<button class="b-red" onclick="delUser('+i+')">Delete</button>')+'</td>';
+    tb.appendChild(tr);
+  });
+}
+function openUserModal(i){
+  const u=(data.users||[])[i]; if(!u) return;
+  modalMode='user'; modalId=u.id;
+  el('modalTitle').textContent='Edit user · '+u.username;
+  el('modalBody').innerHTML=
+    '<label>Username<input id="fUsername" maxlength="32" value="'+escapeHtml(u.username)+'"></label>'+
+    '<label>Email<input id="fEmail" type="email" value="'+escapeHtml(u.email||'')+'"></label>'+
+    '<label>Role<select id="fRole">'+
+      ['customer','seller','admin'].map(r=>'<option value="'+r+'"'+(u.role===r?' selected':'')+'>'+r+'</option>').join('')+
+    '</select></label>'+
+    '<label>New password <span style="color:#999">(leave blank to keep current)</span><input id="fPassword" type="password" maxlength="128" placeholder="••••••"></label>'+
+    '<div class="modal-foot"><button onclick="closeModal()">Cancel</button><button class="save" onclick="saveModal()">Save</button></div>';
+  el('modal').classList.add('show');
+}
+async function delUser(i){
+  const u=(data.users||[])[i]; if(!u) return;
+  if(user && u.id===user.id){ showMsg('You cannot delete your own account',false); return; }
+  if(!window.confirm('Delete user "'+u.username+'"? Their sessions and cart are removed; orders and products stay.')) return;
+  const {s,d}=await api('DELETE','/api/v1/admin/users/'+encodeURIComponent(u.id));
+  if(s===200){ showMsg('Deleted user "'+u.username+'"',true); reload('users',false); }
+  else showMsg((d&&d.error)||'Delete failed',false);
+}
+
+// ---------------------------------------------------------------- modal save
+let modalMode=null, modalId=null;
+function closeModal(){ el('modal').classList.remove('show'); modalMode=null; modalId=null; }
+async function saveModal(){
+  try{
+    if(modalMode==='product'){
+      const body={
+        name:(el('fName').value||'').trim(),
+        description:el('fDesc')?el('fDesc').value:'',
+        price:Number(el('fPrice').value),
+        stock:Number(el('fStock').value)
+      };
+      if(!body.name){ showMsg('Name is required',false); return; }
+      const owner=el('fOwner');
+      if(owner && owner.value.trim()) body.ownerId=owner.value.trim();
+      const {s,d}=await api(modalId?'PUT':'POST', modalId?'/api/v1/products/'+encodeURIComponent(modalId):'/api/v1/products', body);
+      if((s===200||s===201) && !(d&&d.error)){ showMsg(modalId?'Product updated':'Product created',true); closeModal(); reload('products',false); }
+      else showMsg((d&&d.error)||'Save failed (status '+s+')',false);
+      return;
+    }
+    if(modalMode==='user'){
+      const body={
+        username:(el('fUsername').value||'').trim(),
+        email:(el('fEmail').value||'').trim(),
+        role:el('fRole').value
+      };
+      const pw=el('fPassword').value;
+      if(pw) body.password=pw;
+      const {s,d}=await api('PUT','/api/v1/admin/users/'+encodeURIComponent(modalId),body);
+      if(s===200 && !(d&&d.error)){ showMsg('User updated',true); closeModal(); reload('users',false); }
+      else showMsg((d&&d.error)||'Save failed (status '+s+')',false);
+      return;
+    }
+  }catch(err){ showMsg('Save failed: '+err,false); }
+}
+
+// Keyboard: Esc closes modal; Enter saves.
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') closeModal();
+  if(e.key==='Enter' && el('modal').classList.contains('show')){ e.preventDefault(); saveModal(); }
+});
+
+switchTab('dashboard');
+</script>
+</body>
+</html>
