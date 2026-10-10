@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sri Mart - Order Placed</title>
+<script src="/config/api-config.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;background:#f0f2f5}
+.header{background:#4CAF50;color:white;padding:15px 30px;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:22px}.header button{padding:8px 16px;border:none;border-radius:5px;cursor:pointer;background:white;color:#4CAF50;margin-left:10px}
+.container{max-width:640px;margin:20px auto;padding:0 20px}
+.card{background:white;border-radius:10px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1);margin-bottom:15px;text-align:center}
+.check{width:64px;height:64px;border-radius:50%;background:#4CAF50;color:white;font-size:34px;line-height:64px;margin:0 auto 12px}
+.steps{display:flex;margin:18px 0;}
+.step{flex:1;text-align:center;font-size:12px;color:#aaa;position:relative}
+.step .dot{width:22px;height:22px;border-radius:50%;background:#ddd;color:white;font-size:12px;line-height:22px;margin:0 auto 4px}
+.step.done{color:#4CAF50}.step.done .dot{background:#4CAF50}
+.step.cancel{color:#d93025}.step.cancel .dot{background:#d93025}
+table{width:100%;border-collapse:collapse;margin-top:10px;text-align:left;font-size:14px}
+th,td{padding:8px;border-bottom:1px solid #eee}th{background:#f7f7f7}
+.total{font-size:18px;font-weight:bold;text-align:right;margin-top:10px}
+.meta{text-align:left;font-size:13px;color:#555;background:#f9f9f9;border-radius:8px;padding:12px;margin-top:12px}
+.meta b{color:#333}
+.btnrow{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.btnrow button{flex:1;padding:12px;border:none;border-radius:6px;cursor:pointer;font-size:14px;min-width:140px}
+.btn-green{background:#4CAF50;color:white}.btn-orange{background:#ff9800;color:white}.btn-grey{background:#eee;color:#333}.btn-blue{background:#2196F3;color:white}
+.err{color:#c00;padding:20px}
+@media print{ .header button,.btnrow,.no-print{display:none !important} body{background:white} .card{box-shadow:none} }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🛒 Sri Mart</h1>
+  <div><span id="userInfo" style="font-size:14px"></span><button onclick="goShop()">Continue Shopping</button><button onclick="logout()">Logout</button></div>
+</div>
+<div class="container">
+  <div class="card" id="billCard">
+    <div class="check">✓</div>
+    <h2>Order placed, thank you!</h2>
+    <p id="helloLine" style="color:#666;margin-top:6px;">Your bill is ready below.</p>
+    <div class="steps" id="steps">
+      <div class="step" id="stPlaced"><div class="dot">1</div>Placed</div>
+      <div class="step" id="stPaid"><div class="dot">2</div>Paid</div>
+      <div class="step" id="stShipped"><div class="dot">3</div>Shipped</div>
+      <div class="step" id="stDelivered"><div class="dot">4</div>Delivered</div>
+    </div>
+    <div class="meta" id="billMeta">Loading your bill...</div>
+    <table id="itemTable" style="display:none">
+      <thead><tr><th>Item</th><th>Qty</th><th style="text-align:right">Amount</th></tr></thead>
+      <tbody id="itemRows"></tbody>
+    </table>
+    <div class="total" id="grandTotal"></div>
+    <div class="btnrow">
+      <button class="btn-green" id="payBtn" style="display:none" onclick="openPay()">💳 Pay Now</button>
+      <button class="btn-green" onclick="goShop()">Continue Shopping</button>
+      <button class="btn-blue" id="reorderBtn" onclick="reorder()">↻ Buy Again</button>
+    </div>
+    <div class="btnrow">
+      <button class="btn-orange" onclick="window.print()">Print Bill</button>
+      <button class="btn-grey" onclick="askAssistant()">Need Help?</button>
+    </div>
+    <div class="btnrow">
+      <button class="btn-grey" onclick="copyBill()">Copy Bill ID</button>
+      <button class="btn-grey" onclick="refreshStatus()">↻ Refresh Status</button>
+    </div>
+    <p class="no-print" style="font-size:12px;color:#888;margin-top:12px;">Free delivery over ₹499 · Easy 7-day returns with this bill</p>
+  </div>
+</div>
+<!-- payment overlay (demo) -->
+<div id="payOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:10px;padding:22px;width:380px;max-width:92vw;text-align:left">
+    <h3 style="margin-bottom:8px">Complete payment</h3>
+    <div id="payInfo" style="font-size:13px;color:#666"></div>
+    <div id="payAmt" style="font-size:22px;font-weight:bold;color:#4CAF50;margin:6px 0"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">
+      <button class="btn-green" onclick="payVia('UPI')">UPI</button>
+      <button class="btn-blue" onclick="payVia('Card')">Card</button>
+      <button class="btn-orange" onclick="payVia('Net Banking')">Net Banking</button>
+      <button class="btn-grey" onclick="payVia('Cash on Delivery')">COD</button>
+    </div>
+    <div style="font-size:11px;color:#999">Demo payment — no real money is charged.</div>
+    <div class="btnrow"><button class="btn-grey" onclick="closePay()">Cancel</button></div>
+  </div>
+</div>
+<script>
+const API=(typeof sriApiBase === "function") ? sriApiBase() : window.location.origin;
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+let token=localStorage.getItem('token');
+let user=JSON.parse(localStorage.getItem('user')||'null');
+if(!token || !user){ window.location.href='/'; }
+document.getElementById('userInfo').textContent = user ? user.username : '';
+function goShop(){ window.location.href='/buyer'; }
+function askAssistant(){ window.location.href='/buyer#chat'; }
+async function logout(){
+  await fetch(API+'/api/v1/auth/logout',{method:'POST',headers:{'Authorization':'Bearer '+token}});
+  localStorage.removeItem('token'); localStorage.removeItem('user'); window.location.href='/';
+}
+let currentBill=null, currentBillId=null, pollTimer=null;
+async function fetchBill(id){
+  try{
+    const r=await fetch(API+'/api/v1/orders/'+encodeURIComponent(id),{headers:{'Authorization':'Bearer '+token}});
+    const d=await r.json();
+    if(r.ok && !d.error) return d;
+  }catch(e){}
+  return null;
+}
+function deliveryBy(s){
+  try{
+    const d=new Date(String(s).replace(' ','T'));
+    d.setDate(d.getDate()+4);
+    return d.toDateString();
+  }catch(e){ return ''; }
+}
+function paintSteps(status){
+  const st=String(status||'created').toLowerCase();
+  const ids=['stPlaced','stPaid','stShipped','stDelivered'];
+  ids.forEach(id=>document.getElementById(id).classList.remove('done','cancel'));
+  if(st==='cancelled'){
+    // Cancelled orders: mark the first step red, clear the rest.
+    document.getElementById('stPlaced').classList.add('cancel');
+    return 'Cancelled';
+  }
+  document.getElementById('stPlaced').classList.add('done');
+  if(st==='paid'||st==='shipped'||st==='delivered') document.getElementById('stPaid').classList.add('done');
+  if(st==='shipped'||st==='delivered') document.getElementById('stShipped').classList.add('done');
+  if(st==='delivered') document.getElementById('stDelivered').classList.add('done');
+  return st.charAt(0).toUpperCase()+st.slice(1);
+}
+async function load(){
+  const id=new URLSearchParams(window.location.search).get('id');
+  const meta=document.getElementById('billMeta');
+  if(!id){ meta.innerHTML='<span class="err">No bill selected. Place an order first.</span>'; return; }
+  currentBillId=id;
+  const bill=await fetchBill(id);
+  if(!bill){ meta.innerHTML='<span class="err">Could not load this bill. It may belong to another account.</span>'; return; }
+  currentBill=bill;
+  renderBill(bill);
+  // Live status: refresh silently every 10s while visible (fully dynamic).
+  if(!pollTimer){ pollTimer=setInterval(async ()=>{
+    if(document.visibilityState!=='visible' || !currentBillId) return;
+    const b=await fetchBill(currentBillId);
+    if(b){ currentBill=b; renderBill(b); }
+  }, 10000); }
+}
+// Bill lines: the server-side order items [{productId,name,price,quantity}] are the source of truth;
+// fall back to the localStorage checkout snapshot for orders created before that upgrade.
+function getLines(bill){
+  if(bill && Array.isArray(bill.items) && bill.items.length>0){
+    return bill.items.map(it=>({productId:it.productId||null, name:it.name, price:it.price, qty:Number(it.quantity)||1}));
+  }
+  let snap=null;
+  try{ snap=JSON.parse(localStorage.getItem('sri_last_bill')||'null'); }catch(e){}
+  if(snap && bill && snap.id===bill.id && Array.isArray(snap.items)) return snap.items;
+  return [];
+}
+function renderBill(bill){
+  const meta=document.getElementById('billMeta');
+  document.getElementById('helloLine').textContent='Thanks '+user.username+'! Show this bill for returns.';
+  const label=paintSteps(bill.status);
+  meta.innerHTML='';
+  const addRow=(k,v)=>{ const d=document.createElement('div'); const b=document.createElement('b'); b.textContent=k+': '; d.appendChild(b); d.appendChild(document.createTextNode(v)); meta.appendChild(d); };
+  addRow('Bill ID', bill.id);
+  addRow('Date', bill.created_at||'');
+  // 2. Item lines: server-side bill.items is the source of truth; localStorage only for legacy orders.
+  const lines=getLines(bill);
+  const srow=document.createElement('div');
+  const sb=document.createElement('b'); sb.textContent='Status: ';
+  const sv=document.createElement('span'); sv.textContent=label;
+  srow.appendChild(sb); srow.appendChild(sv); meta.appendChild(srow);
+  addRow('Items', String(bill.itemCount));
+  const eta=deliveryBy(bill.created_at);
+  const st=String(bill.status||'created').toLowerCase();
+  // Pay Now only for unpaid orders.
+  document.getElementById('payBtn').style.display=(st==='created')?'':'none';
+  // No delivery ETA for cancelled orders; delivered shows the real window too.
+  if(eta && st!=='cancelled') addRow('Estimated delivery', eta);
+  if(lines.length>0){
+    const tbody=document.getElementById('itemRows'); tbody.innerHTML='';
+    document.getElementById('itemTable').style.display='table';
+    lines.forEach(it=>{
+      const tr=document.createElement('tr');
+      const tdN=document.createElement('td'); tdN.textContent=it.name;
+      const tdQ=document.createElement('td'); tdQ.textContent='x'+it.qty;
+      const tdA=document.createElement('td'); tdA.style.textAlign='right';
+      tdA.textContent='₹'+(Number(it.price)*Number(it.qty)).toFixed(2);
+      tr.appendChild(tdN); tr.appendChild(tdQ); tr.appendChild(tdA);
+      tbody.appendChild(tr);
+    });
+  }
+  document.getElementById('grandTotal').textContent='Total: ₹'+Number(bill.total).toFixed(2);
+}
+async function refreshStatus(){
+  if(!currentBillId) return;
+  const b=await fetchBill(currentBillId);
+  if(b){ currentBill=b; renderBill(b); }
+  else alert('Could not refresh. Check your connection.');
+}
+function copyBill(){
+  const id=currentBill?currentBill.id:(new URLSearchParams(window.location.search).get('id')||'');
+  if(!id) return;
+  const fallback=()=>{ prompt('Copy your Bill ID:', id); };
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(id).then(()=>alert('Bill ID copied'), fallback); }
+  else fallback();
+}
+async function reorder(){
+  const btn=document.getElementById('reorderBtn');
+  btn.disabled=true; const old=btn.textContent; btn.textContent='Adding...';
+  try{
+    // Prefer server-side bill lines; localStorage snapshot only for legacy orders.
+    const items=getLines(currentBill || {id:currentBillId});
+    if(items.length===0){ alert('No item details available for this bill.'); return; }
+    const pr=await fetch(API+'/api/v1/products'); const catalog=await pr.json();
+    let added=0;
+    for(const it of items){
+      let pid=it.productId||null;
+      if(!pid && it.name){
+        const q=String(it.name).toLowerCase();
+        const hit=(catalog||[]).find(p=>String(p.name).toLowerCase()===q)
+          || (catalog||[]).find(p=>String(p.name).toLowerCase().indexOf(q.split(' ')[0])!==-1);
+        if(hit) pid=hit.id;
+      }
+      if(!pid) continue;
+      const r=await fetch(API+'/api/v1/cart',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({productId:pid, quantity:it.qty||1})});
+      if(r.ok) added++;
+    }
+    if(added>0) window.location.href='/buyer';
+    else alert('Could not re-add items (they may be out of stock or removed).');
+  }catch(e){ alert('Reorder failed. Is the server running?'); }
+  finally{ btn.disabled=false; btn.textContent=old; }
+}
+function openPay(){
+  if(!currentBill) return;
+  document.getElementById('payInfo').textContent='Bill '+String(currentBill.id).substring(0,8)+' · '+currentBill.itemCount+' item(s)';
+  document.getElementById('payAmt').textContent='₹'+Number(currentBill.total).toFixed(2);
+  document.getElementById('payOverlay').style.display='flex';
+}
+function closePay(){ document.getElementById('payOverlay').style.display='none'; }
+async function payVia(method){
+  if(!currentBillId) return;
+  try{
+    const r=await fetch(API+'/api/v1/orders/'+encodeURIComponent(currentBillId)+'/status',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status:'paid'})});
+    const d=await r.json();
+    if(r.ok && !d.error){
+      closePay();
+      alert('Payment successful via '+method+' — thank you!');
+      refreshStatus();
+    } else alert(d.error||'Payment failed (HTTP '+r.status+')');
+  }catch(e){ alert('Payment failed. Is the server running?'); }
+}
+load();
+</script>
+</body>
+</html>
