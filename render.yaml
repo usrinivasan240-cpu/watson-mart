@@ -7,31 +7,9 @@ services:
     envVars:
       - key: PORT
         value: "8080"
-      - key: PGHOST
-        fromService:
-          type: postgres
-          name: srinivasan-mart-db
-          property: host
-      - key: PGPORT
-        fromService:
-          type: postgres
-          name: srinivasan-mart-db
-          property: port
-      - key: PGDATABASE
-        fromService:
-          type: postgres
-          name: srinivasan-mart-db
-          property: database
-      - key: PGUSER
-        fromService:
-          type: postgres
-          name: srinivasan-mart-db
-          property: user
-      - key: PGPASSWORD
-        fromService:
-          type: postgres
-          name: srinivasan-mart-db
-          property: password
+      # PGHOST / PGPORT / PGDATABASE / PGUSER / PGPASSWORD / DATABASE_URL
+      # are injected automatically by Render because this blueprint also
+      # provisions the srinivasan-mart-db PostgreSQL instance below.
 databases:
   - name: srinivasan-mart-db
     plan: free
